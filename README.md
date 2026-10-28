@@ -13,9 +13,9 @@ Pricing d'options (vanille dans un premier temps), calcul de grecques et visuali
 | Python | En cours | Version initiale |
 | C# | À venir | Refonte orientée objet |
 
-## 📚 Références
+## Références
 
 - *Options, Futures and Other Derivatives* — John C. Hull
-
+- *_S&P Academy courses_
 ---
 <sub>Projet d'apprentissage — toute remarque constructive est bienvenue.</sub>
