@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pricer — Options et produits structurés</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="mast-inner">
+    <img class="logo" src="/static/logo.svg" alt="">
+    <div class="titles">
+      <span class="org">S&amp;P Academy</span>
+      <span class="sub">Pricer d'options et de produits structurés</span>
+    </div>
+    <nav class="chapters" role="tablist" aria-label="Sections du pricer">
+      <button class="tab active" role="tab" aria-selected="true" data-panel="panel-options"><small>Chapitre 2</small>Options vanilles</button>
+      <button class="tab" role="tab" aria-selected="false" data-panel="panel-strategies"><small>Chapitre 3</small>Stratégies</button>
+      <button class="tab" role="tab" aria-selected="false" data-panel="panel-structured"><small>Au-delà du cours</small>Produits structurés</button>
+    </nav>
+  </div>
+  <div class="goldrule"></div>
+</header>
+
+<main>
+
+<!-- ============ Paramètres de marché à t0 (partagés par tous les onglets) ============ -->
+<section class="card market" aria-labelledby="mk-title">
+  <h2 id="mk-title"><span class="num">t₀</span>Paramètres de marché</h2>
+  <div class="market-grid">
+    <div class="wide" style="position:relative">
+      <label for="m-ticker">Sous-jacent (ticker, facultatif)</label>
+      <input id="m-ticker" type="text" placeholder="ex : AAPL, MC.PA, ^GSPC…" autocomplete="off">
+      <div id="m-ticker-results" class="suggest" hidden></div>
+    </div>
+    <div>
+      <label for="m-s0">Spot S₀</label>
+      <input id="m-s0" type="number" value="100" min="0.0001" step="any" required>
+    </div>
+    <div>
+      <label for="m-sigma-source">Volatilité à t₀ : source</label>
+      <select id="m-sigma-source">
+        <option value="manual">Saisie manuelle</option>
+        <option value="hist">Historique (1 an)</option>
+        <option value="vix">VIX (S&amp;P 500)</option>
+      </select>
+    </div>
+    <div>
+      <label for="m-sigma">Volatilité σ à t₀ (%)</label>
+      <input id="m-sigma" type="number" value="25" min="0.01" max="200" step="any" required>
+    </div>
+    <div>
+      <label for="m-r">Taux sans risque r (%)</label>
+      <input id="m-r" type="number" value="3" min="-50" max="50" step="any" required>
+    </div>
+    <div>
+      <label for="m-q">Dividende continu q (%)</label>
+      <input id="m-q" type="number" value="2" min="0" max="50" step="any" required>
+    </div>
+    <div class="wide">
+      <label id="m-method-label">Méthode de valorisation</label>
+      <div class="seg" role="group" aria-labelledby="m-method-label">
+        <button type="button" id="m-bs" aria-pressed="true">Black-Scholes</button>
+        <button type="button" id="m-mc" aria-pressed="false">Monte Carlo</button>
+      </div>
+    </div>
+    <div>
+      <label for="m-nsims">Simulations Monte Carlo</label>
+      <input id="m-nsims" type="number" value="50000" min="1000" max="500000" step="1000" required>
+    </div>
+    <div>
+      <label for="m-seed">Graine (reproductibilité)</label>
+      <input id="m-seed" type="number" value="42" min="0" max="4294967295" step="1" required>
+    </div>
+  </div>
+  <p id="m-status" class="hint">Sans ticker, saisis le spot et la volatilité à la main. Avec un ticker, la volatilité historique et le VIX sont proposés ; la source « manuelle » reste modifiable à tout moment.</p>
+</section>
+
+<!-- ============ I. Options vanilles ============ -->
+<section id="panel-options" class="grid">
+  <div class="card side">
+    <h2><span class="num">I</span>Option</h2>
+    <p class="course-note"><b>Cours, ch. 2.4–2.5 et 7–9.</b> Valeur intrinsèque et valeur temps, payoffs, formule de Black–Scholes et grecs.</p>
+    <form id="form-option" novalidate>
+      <div class="fields">
+        <div><label for="opt-type">Type</label>
+          <select id="opt-type"><option value="call">Call</option><option value="put">Put</option></select></div>
+        <div><label for="opt-side">Position</label>
+          <select id="opt-side"><option value="long">Long (acheteur)</option><option value="short">Short (vendeur)</option></select></div>
+        <div><label for="opt-k">Strike K</label>
+          <input id="opt-k" type="number" value="100" min="0.0001" step="any" required></div>
+        <div><label for="opt-months">Maturité (mois)</label>
+          <input id="opt-months" type="number" value="6" min="0.1" max="360" step="any" required></div>
+      </div>
+      <button class="primary" type="submit">Calculer</button>
+      <p id="opt-status" class="status" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+  <div class="results" id="opt-results"><div class="empty">Renseigne l'option puis lance le calcul.</div></div>
+</section>
+
+<!-- ============ II. Stratégies ============ -->
+<section id="panel-strategies" class="grid" hidden>
+  <div class="card side">
+    <h2><span class="num">II</span>Stratégie</h2>
+    <p class="course-note"><b>Cours, ch. 3.</b> Covered call, protective put, straddle, strangle, spreads, collar, risk reversal et forward synthétique.</p>
+    <form id="form-strategy" novalidate>
+      <div class="fields">
+        <div class="full"><label for="strat-select">Stratégie</label>
+          <select id="strat-select"></select></div>
+      </div>
+      <div id="strat-desc" class="course-note" hidden></div>
+      <div class="fields" id="strat-params"></div>
+      <div class="fields">
+        <div class="full"><label for="strat-months">Maturité (mois)</label>
+          <input id="strat-months" type="number" value="6" min="0.1" max="360" step="any" required></div>
+      </div>
+      <button class="primary" type="submit">Calculer</button>
+      <p id="strat-status" class="status" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+  <div class="results" id="strat-results"><div class="empty">Choisis une stratégie puis lance le calcul.</div></div>
+</section>
+
+<!-- ============ III. Produits structurés ============ -->
+<section id="panel-structured" class="grid" hidden>
+  <div class="card side">
+    <h2><span class="num">III</span>Produit structuré</h2>
+    <div class="fields">
+      <div class="full"><label for="struct-product">Produit</label>
+        <select id="struct-product">
+          <option value="phoenix">Phoenix</option>
+          <option value="autocall_plain">Athéna (Autocall Plain) — coupons accumulés</option>
+          <option value="accumulateur">Accumulateur</option>
+          <option value="decumulateur">Décumulateur</option>
+          <option value="dra">DRA Daily (Daily Range Accrual)</option>
+        </select></div>
+    </div>
+    <p id="mc-only-note" class="mc-note" hidden>Ce produit est valorisé par <b>Monte Carlo uniquement</b> (barrières observées aux constats, pas de formule fermée) : le choix Black-Scholes n'a pas d'effet ici.</p>
+
+    <!-- Phoenix -->
+    <form id="form-phoenix" data-product="phoenix" novalidate>
+      <h3>Durée et nominal</h3>
+      <div class="fields">
+        <div><label for="phx-nominal">Montant investi</label><input id="phx-nominal" type="number" value="1000" min="1" step="any" required></div>
+        <div><label for="phx-freq">Observations</label>
+          <select id="phx-freq"><option value="1">Annuelles</option><option value="2" selected>Semestrielles</option><option value="4">Trimestrielles</option><option value="12">Mensuelles</option></select></div>
+        <div class="full"><label for="phx-months">Maturité (mois)</label>
+          <input id="phx-months" type="number" value="36" min="6" max="360" step="6" required>
+          <p class="hint" id="phx-dates-hint"></p></div>
+      </div>
+      <h3>Coupons</h3>
+      <div class="fields">
+        <div class="full"><label for="phx-coupon">Coupon par période (%)</label><input id="phx-coupon" type="number" value="4" min="0" max="100" step="any" required></div>
+        <label class="check full"><input id="phx-stepup-on" type="checkbox"> Coupon step-up : il augmente à chaque période</label>
+        <div class="full" id="phx-stepup-wrap" hidden><label for="phx-stepup">Hausse par période (%)</label><input id="phx-stepup" type="number" value="0.5" min="0.01" max="10" step="any"></div>
+        <label class="check full"><input id="phx-memory" type="checkbox"> Effet mémoire : un coupon manqué est rattrapé plus tard</label>
+      </div>
+      <h3>Barrières (en % du niveau initial)</h3>
+      <div class="fields">
+        <label class="check full"><input id="phx-autocall" type="checkbox" checked> Remboursement anticipé possible (autocall)</label>
+        <div class="full"><label for="phx-kauto">Remboursement anticipé (%)</label><input id="phx-kauto" type="number" value="100" min="1" max="300" step="any" required><p class="hint" id="phx-kauto-hint"></p></div>
+        <div class="full"><label for="phx-bcoupon">Coupon versé (%)</label><input id="phx-bcoupon" type="number" value="70" min="1" max="300" step="any" required><p class="hint" id="phx-bcoupon-hint"></p></div>
+        <div class="full"><label for="phx-bpdi">Capital protégé (%)</label><input id="phx-bpdi" type="number" value="60" min="1" max="300" step="any" required><p class="hint" id="phx-bpdi-hint"></p></div>
+      </div>
+      <details>
+        <summary>Bonus (facultatif)</summary>
+        <div class="fields" style="margin-top:12px">
+          <div><label for="phx-bonus-threshold">Seuil du bonus (%)</label><input id="phx-bonus-threshold" type="number" min="1" max="300" step="any" placeholder="aucun"></div>
+          <div><label for="phx-bonus-amount">Bonus (% investi)</label><input id="phx-bonus-amount" type="number" value="0" min="0" max="100" step="any"></div>
+        </div>
+      </details>
+      <button class="primary" type="submit">Calculer</button>
+      <p id="phx-status" class="status" role="status" aria-live="polite"></p>
+    </form>
+
+    <!-- Athéna / Autocall Plain -->
+    <form id="form-autocall_plain" data-product="autocall_plain" hidden novalidate>
+      <h3>Durée et nominal</h3>
+      <div class="fields">
+        <div><label for="ac-plain-nominal">Montant investi</label><input id="ac-plain-nominal" type="number" value="1000" min="0.01" step="any" required></div>
+        <div><label for="ac-plain-freq">Observations</label>
+          <select id="ac-plain-freq"><option value="1">Annuelles</option><option value="2" selected>Semestrielles</option><option value="4">Trimestrielles</option><option value="12">Mensuelles</option></select></div>
+        <div class="full"><label for="ac-plain-months">Maturité (mois)</label><input id="ac-plain-months" type="number" value="36" min="1" max="360" step="1" required></div>
+        <div class="full"><label for="ac-plain-first">Premier rappel autorisé à partir de (mois)</label><input id="ac-plain-first" type="number" value="6" min="0" max="360" step="1" required></div>
+        <label class="check full"><input id="ac-plain-autocall" type="checkbox" checked> Remboursement anticipé possible (autocall)</label>
+      </div>
+      <h3>Coupons et barrières</h3>
+      <p class="hint" style="margin:0 0 10px">Coupons accumulés payés au rappel ; à maturité, tous les coupons uniquement si le seuil final est atteint. Barrières en % du spot initial.</p>
+      <div class="fields">
+        <div class="full"><label for="ac-plain-coupon">Coupon par observation (%)</label><input id="ac-plain-coupon" type="number" value="4" min="0" max="100" step="any" required></div>
+        <div class="full"><label for="ac-plain-barrier">Rappel et coupon final (%)</label><input id="ac-plain-barrier" type="number" value="100" min="0.01" max="300" step="any" required></div>
+        <label class="check full"><input id="ac-plain-protection" type="checkbox" checked> Protection conditionnelle à maturité</label>
+        <div class="full"><label for="ac-plain-ki">Barrière de protection (%)</label><input id="ac-plain-ki" type="number" value="60" min="0.01" max="100" step="any" required></div>
+      </div>
+      <button class="primary" type="submit">Calculer</button>
+      <p id="ac-plain-status" class="status" role="status" aria-live="polite"></p>
+    </form>
+
+    <!-- Accumulateur / décumulateur -->
+    <form id="form-accu" data-product="accumulateur decumulateur" hidden novalidate>
+      <p class="course-note" id="accu-desc"></p>
+      <div class="fields">
+        <div><label for="acc-months">Maturité (mois)</label><input id="acc-months" type="number" value="12" min="1" max="360" step="1" required></div>
+        <div><label for="acc-freq">Constats</label>
+          <select id="acc-freq"><option value="quotidien">Quotidiens</option><option value="hebdomadaire">Hebdomadaires</option><option value="mensuel">Mensuels</option></select></div>
+        <div><label for="acc-strike" id="acc-strike-label">Strike (% du spot)</label><input id="acc-strike" type="number" value="90" min="1" max="400" step="any" required></div>
+        <div><label for="acc-ko" id="acc-ko-label">Barrière KO (% du spot)</label><input id="acc-ko" type="number" value="105" min="1" max="400" step="any" required></div>
+        <div><label for="acc-levier">Levier (zone adverse)</label><input id="acc-levier" type="number" value="2" min="1" max="10" step="any" required></div>
+        <div><label for="acc-qte">Quantité par constat</label><input id="acc-qte" type="number" value="1" min="0.0001" step="any" required></div>
+        <div class="full"><label for="acc-garanti">Constats garantis (sans KO)</label><input id="acc-garanti" type="number" value="0" min="0" step="1" required></div>
+        <label class="check full"><input id="acc-livraison" type="checkbox"> Livraison le jour du KO (convention du contrat)</label>
+        <label class="check full"><input id="acc-zero" type="checkbox"> Calculer aussi le strike « zéro coût » (quelques secondes de plus)</label>
+      </div>
+      <button class="primary" type="submit">Calculer</button>
+      <p id="acc-status" class="status" role="status" aria-live="polite"></p>
+    </form>
+
+    <!-- DRA Daily -->
+    <form id="form-dra" data-product="dra" hidden novalidate>
+      <p class="course-note">Capital remboursé à 100 % à maturité. Chaque jour où le sous-jacent est dans la fourchette, le produit accumule 1/252 du coupon annuel ; les coupons accumulés sont payés à chaque période.</p>
+      <div class="fields">
+        <div><label for="dra-nominal">Montant investi</label><input id="dra-nominal" type="number" value="1000" min="1" step="any" required></div>
+        <div><label for="dra-months">Maturité (mois)</label><input id="dra-months" type="number" value="24" min="1" max="360" step="1" required></div>
+        <div><label for="dra-low">Borne basse (% du spot)</label><input id="dra-low" type="number" value="90" min="1" max="400" step="any" required></div>
+        <div><label for="dra-high">Borne haute (% du spot)</label><input id="dra-high" type="number" value="110" min="1" max="400" step="any" required></div>
+        <div><label for="dra-coupon">Coupon annuel (%)</label><input id="dra-coupon" type="number" value="8" min="0" max="100" step="any" required></div>
+        <div><label for="dra-freq">Paiement des coupons</label>
+          <select id="dra-freq"><option value="mensuel">Mensuel</option><option value="trimestriel" selected>Trimestriel</option><option value="semestriel">Semestriel</option><option value="annuel">Annuel</option></select></div>
+      </div>
+      <button class="primary" type="submit">Calculer</button>
+      <p id="dra-status" class="status" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+  <div class="results" id="st-results"><div class="empty">Lance un calcul pour voir les résultats.</div></div>
+</section>
+
+<p class="footer">Projet pédagogique d'après le cours d'options de la S&amp;P Academy. Hypothèses de Black–Scholes : r, q et σ constants, pas de smile, pas de risque de défaut de l'émetteur.</p>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
